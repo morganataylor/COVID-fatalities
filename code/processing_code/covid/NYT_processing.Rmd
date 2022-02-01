@@ -1,0 +1,169 @@
+---
+title: "NYT COVID-19 Deaths"
+author: "Morgan Taylor"
+date: "2/1/2022"
+output: 
+  html_document:
+      theme: flatly
+      toc: FALSE
+---
+
+## Introduction
+
+The New York Times (NYT) hosts a publicly available [GitHub repository](https://github.com/nytimes/covid-19-data) for their COVID-19 data. The repository contains a full explanation of the data, but we will note the significant definitions here:
+
+* COVID-19 Deaths: deaths reported by state and local health agencies
+* Excess Deaths: the elevated overall number of deaths during the pandemic
+* Historical data: final data reported at the end of each day (does not include the day that the data is queried)
+* Live data: the most up-to-date data available but may contain partial counts as data is released throughout the day
+
+<br>
+
+Other important assumptions to note:
+
+* Geographic location of patients is defined by where they are treated, not where they live
+* Total cases and deaths include both "confirmed" and "probable"
+* Reporting authorities (e.g. states) do not always distinguish between confirmed and probable
+
+<br>
+
+Based on these parameters, this analysis will include COVID-19 deaths and excess deaths from the historical data. Interpretation of these numbers must acknowledge that the number of deaths includes both confirmed and probable deaths, due to the challenges of different reporting jurisdictions. The following markdown will import the data from the NYT GitHub repository, clean it for the analysis, and save it as a processed dataset. The processing workflow is conducted for reported COVID-19 deaths as well as excess deaths.
+
+---
+
+## Required Packages
+The following R packages are required for this script:
+
+* here: for path setting
+* tidyverse: for all packages in the Tidyverse (ggplot2, dplyr, tidyr, readr, purr, tibble, stringr, forcats)
+* skimr: for data summarization
+* lubridate: for date wrangling
+```{r libraries, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#load required packages
+library(here) #to set paths
+library(tidyverse) #for data processing
+library(skimr) #for data summarization
+library(lubridate) #for date wrangling
+```
+
+---
+
+## Reported COVID-19 Deaths
+To capture the deaths from COVID-19, we will use the [NYT Cumulative Cases and Deaths](https://github.com/nytimes/covid-19-data#cumulative-cases-and-deaths) dataset. It is the historical daily number of cases and deaths reported across the United States, including states, US territories, and the District of Columbia. The processing steps of this data include:
+
+1. Import the raw data from the NYT GitHub repository
+2. Examine the structure of the data to determine processing steps
+3. Convert the date variable from character class to date class
+4. Create a dataframe that represents the current total number of cases and deaths in the US
+5. Save processed datasets
+
+---
+
+### 1. Import Raw Data
+As this data is available on GitHub, we can import it directly from the repository. This will allow us to run the analysis with the most up-to-date complete data available.
+```{r raw data}
+#use read.csv to import directly from the Raw CSV file on GitHub
+NYT_raw <- read.csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv")
+
+```
+
+---
+
+### 2. Raw Data Overview
+Examine the summary and structure of the raw data to determine processing steps.
+```{r raw data overview}
+#summary using base R
+summary(NYT_raw)
+
+#summary and structure using the skimr package
+skimr::skim(NYT_raw)
+```
+
+---
+
+### 3. Convert Date Variable
+To be able to use the data as a time series, we need to convert the variable into a date class, instead of a character class.
+```{r convert date}
+#create a shadow dataframe to avoid editing the original
+NYT_1 <- NYT_raw
+
+#use base R to convert into the Date class
+NYT_1$date <- as.Date(NYT_1$date)
+
+#verify it worked
+class(NYT_1$date)
+```
+
+---
+
+### 4. Subset Cumulative Total
+To be able to compare the total number of deaths across data sources and hazards, we need to create a dataframe that represents the total number of deaths in the US according to the NYT. We can do this simply by subsetting the last row of the dataset. We will include the date and total cases reported for now, but we will likely remove them later in the data analysis process.
+```{r cumulative subset}
+NYT_total <- tail(NYT_1, n = 1)
+```
+
+---
+
+### 5. Save Processed Datasets
+We can now save the processed datasets as .rds files to preserve the data class definitions.
+```{r save processed deaths}
+#location to save complete processed file
+location_NYT_deaths <- here::here("data", "processed_data", "covid", "NYT_processed.rds")
+
+#save as an RDS
+saveRDS(NYT_1, file = location_NYT_deaths)
+
+#location to save total processed file
+location_NYT_total <- here::here("data", "processed_data", "covid", "NYT_total.rds")
+
+#save as an RDS
+saveRDS(NYT_total, file = location_NYT_total)
+```
+
+---
+
+## Excess Deaths
+The official COVID-19 death toll may not be a comprehensive measure of the deaths from the COVID-19 pandemic, as it does not capture those who were not tested or those who died at home. An alternative measure is called excess deaths, which is the difference between all-cause mortality reported during the pandemic and historical all-cause mortality baseline.
+
+<br>
+
+To capture the excess deaths during the COVID-19 pandemic, we will use the [NYT Excess Deaths During the Coronavirus Pandemic](https://github.com/nytimes/covid-19-data/tree/master/excess-deaths) dataset. Key definitions or details to note about this dataset:
+
+* It reports the number of all-cause deaths recorded in an area, by month or week (depending how the data are recorded)
+* The first and last weeks of the year, which are often partial weeks, are excluded
+* Deaths: the total number of confirmed deaths recorded from any cause
+* Expected Deaths: the baseline number of expected deaths, calculated from a historical average using a linear model that accounts for demographic changes and seasonal variations
+* Excess Deaths: The numbers of deaths minus the number of the expected deaths
+
+The processing steps of this data include:
+
+1. Import the raw data from the NYT GitHub repository
+2. Examine the structure of the data to determine processing steps
+3. Subset the dataset to only include US data
+4. 
+
+---
+
+### 1. Import Raw Data
+As this data is available on GitHub, we can import it directly from the repository. This will allow us to run the analysis with the most up-to-date complete data available.
+```{r raw excess data}
+#use read.csv to import directly from the Raw CSV file on GitHub
+NYT_excess_raw <- read.csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/excess-deaths/deaths.csv")
+
+```
+
+---
+
+### 2. Raw Data Overview
+Examine the summary and structure of the raw data to determine processing steps.
+```{r raw excess data overview}
+#summary using base R
+summary(NYT_excess_raw)
+
+#summary and structure using the skimr package
+skimr::skim(NYT_excess_raw)
+```
+
+---
